@@ -11,14 +11,11 @@ numBlocks = 0
 numInodes = 0
 exitFlag = 0
 blockSize = 0
-reservedBlocks = {0,1,2,3,4,5,6,7}
-inodeLinks = {}
-usedBlocks = {} 
-
+firstNonreservedBlock = 0
 
 
 def parseCSV(myCSV):
-	global freeBlocks, freeInodes, Inodes, numBlocks, numInodes, blockSize
+	global freeBlocks, freeInodes, Inodes, numBlocks, numInodes, blockSize, firstNonreservedBlock
 	for line in myCSV:
 		row = line.split(',') 
 		desc = row[0] 
@@ -27,6 +24,10 @@ def parseCSV(myCSV):
 			numBlocks = int(row[1])
 			numInodes = int(row[2])
 			blockSize = int(row[3])
+			inodeSize = int(row[4])
+
+		if desc == "GROUP":
+			firstInodeNum = int(row[8])
 
 		elif desc == "BFREE":
 			freeBlocks.append(int(row[1]))
@@ -43,6 +44,9 @@ def parseCSV(myCSV):
 		elif desc == "DIRENT":
 			directs.append(row)
 
+	inodeTableSize = (inodeSize * numInodes / blockSize)
+	firstNonreservedBlock =  int(firstInodeNum + inodeTableSize)	
+
 def checkInodes():
 	global freeInodes, inodes, exitFlag
 	for inode in inodes:
@@ -58,8 +62,8 @@ def checkInodes():
 			printf(f"UNALLOCATED INODE {num} NOT ON FREELIST")
 		
 def checkBlocks():
-	global inodes, exitFlag
-	usedBlocks = []
+	global inodes, exitFlag, firstNonreservedBlock, freeBlocks
+	myMap = {}
 	for inode in inodes:
 		inum = inode[1]
 		fileSize = int(inode[10])
@@ -72,31 +76,79 @@ def checkBlocks():
 		for bnum in range(12,27):
 			#print(int(inode[bnum]))
 			currBlock=int(inode[bnum])
-
-			if currBlock < 0 or currBlock> numBlocks:
-				if bnum == 24:
-					offset=12
-					lev=1
-					levString="INDIRECT "
-				elif bnum == 25:
-					offset=268
-					lev=2
-					levString="DOUBLE INDIRECT "
-				elif bnum == 26:
-					offset=65804
-					lev=3
-					levString="TRIPLE INDIRECT "
+	
+			if bnum == 24:
+				offset=12
+				lev=1
+				levString="INDIRECT "
+			elif bnum == 25:
+				offset=268
+				lev=2
+				levString="DOUBLE INDIRECT "
+			elif bnum == 26:
+				offset=65804
+				lev=3
+				levString="TRIPLE INDIRECT "
+			else:
+				offset=0
+				lev=0
+				levString=""
+			if currBlock < 0 or currBlock > numBlocks: 
+				print(f"INVALID {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}\n")
+				exitFlag = 1
+			elif currBlock < firstNonreservedBlock and currBlock != 0:
+				print(f"RESERVED {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}\n")
+				exitFlag = 1
+			#valid
+			else:
+				#print(f"\n{currBlock}")	
+				if currBlock in myMap:
+					myMap[currBlock].append((inum, offset, levString))                                                
 				else:
-					offset=0
-					lev=0
-					levString=""
-				if currBlock < 0 or currBlock > numBlocks: 
-					print(f"INVALID {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}\n")
-					exitFlag = 1
-				elif currBlock in reservedBlocks and currBlock != 0:
-					print(f"RESERVED {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}\n")
-					exitFlag = 1
-			currBlock 
+					myMap[currBlock] = [(inum, offset, levString)]
+
+	for indirect in indirects:
+
+		inum = int(indirect[1])
+		currBlock = int(indirect[5]) 
+		lvlNum = int(indirect[2])
+		if lvlNum == 1:
+			offset=12
+			levString="INDIRECT"
+
+		elif lvlNum == 2:
+			offset=268
+			levString="DOUBLE INDIRECT"
+
+		elif lvlNum == 3:
+			offset=65804
+			levString="TRIPLE INDIRECT"
+
+		if currBlock < 0 or currBlock > numBlocks: 
+			print(f"INVALID {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}\n")
+			exitFlag = 1
+		elif currBlock < firstNonreservedBlock and currBlock != 0:
+			print(f"RESERVED {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}\n")
+			exitFlag = 1
+		#valid
+		else:
+			#print(f"\n{currBlock}")	
+			if currBlock in myMap:
+				myMap[currBlock].append((inum, offset, levString))                                                
+			else:
+				myMap[currBlock] = [(inum, offset, levString)]
+  
+	for block in range(firstNonreservedBlock, numBlocks):
+		if block in myMap and block in freeBlocks:
+			 print(f"ALLOCATED BLOCK {block} ON FREELIST")
+			 exitFlag=1
+		elif block not in freeBlocks and block not in myMap:
+			print(f"UNREFERENCED BLOCK {block}")
+			exitFlag=1
+		elif block in myMap and len(myMap[block]) > 1:
+			for inum, offset, levString in myMap[block]:
+				print(f"DUPLICATE {levString}BLOCK {block} IN INODE {inum} AT OFFSET {offset}")
+			exitFlag=1
 
 
 
