@@ -94,10 +94,10 @@ def checkBlocks():
 				lev=0
 				levString=""
 			if currBlock < 0 or currBlock > numBlocks: 
-				print(f"INVALID {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}\n")
+				print(f"INVALID {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}")
 				exitFlag = 1
 			elif currBlock < firstNonreservedBlock and currBlock != 0:
-				print(f"RESERVED {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}\n")
+				print(f"RESERVED {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}")
 				exitFlag = 1
 			#valid
 			else:
@@ -125,10 +125,10 @@ def checkBlocks():
 			levString="TRIPLE INDIRECT"
 
 		if currBlock < 0 or currBlock > numBlocks: 
-			print(f"INVALID {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}\n")
+			print(f"INVALID {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}")
 			exitFlag = 1
 		elif currBlock < firstNonreservedBlock and currBlock != 0:
-			print(f"RESERVED {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}\n")
+			print(f"RESERVED {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}")
 			exitFlag = 1
 		#valid
 		else:
