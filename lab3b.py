@@ -59,13 +59,20 @@ def checkInodes():
 		
 def checkBlocks():
 	global inodes, exitFlag
+	usedBlocks = []
 	for inode in inodes:
 		inum = inode[1]
-		print(f"\n{inum}")
+		fileSize = int(inode[10])
+		fileType=inode[2]
+		#print(f"\n{inum}")
+		#filetype is 3rd val
+		#skip symbolic links with size less than 60; won't have the blocks allocated
+		if fileType == 's' and fileSize <= 60:
+			continue
 		for bnum in range(12,27):
-			print(int(inode[bnum]))
+			#print(int(inode[bnum]))
 			currBlock=int(inode[bnum])
-			
+
 			if currBlock < 0 or currBlock> numBlocks:
 				if bnum == 24:
 					offset=12
@@ -84,11 +91,58 @@ def checkBlocks():
 					lev=0
 					levString=""
 				if currBlock < 0 or currBlock > numBlocks: 
-					print(f"INVALID {levString}BLOCK {str(currBlock)} IN INODE {str(inum)} AT OFFSET {str(offset)}\n")
+					print(f"INVALID {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}\n")
 					exitFlag = 1
 				elif currBlock in reservedBlocks and currBlock != 0:
-					print(f"RESERVED {levString}BLOCK {str(currBlock)} IN INODE {str(inum)} AT OFFSET {str(offset)}\n")
+					print(f"RESERVED {levString}BLOCK {currBlock} IN INODE {inum} AT OFFSET {offset}\n")
 					exitFlag = 1
+			currBlock 
+
+
+
+def checkDirects():
+	global exitFlag,directs
+	inodeReferences = {}
+	parentArr = {}
+	for direct in directs:
+		dirInode = int(direct[3])
+		parentInode = int(direct[1])
+		dirInodeName = direct[6]
+		if dirInode<0 or dirInode > numInodes:
+			print(f"DIRECTORY INODE {parentInode} NAME {dirInodeName} INVALID INODE {dirInode}")
+			exitFlag = 1
+		if dirInode in freeInodes:
+			print(f"DIRECTORY INODE {parentInode} NAME {dirInodeName} UNALLOCATED INODE {dirInode}")
+			exitFlag = 1
+		if dirInodeName == "'.'" and dirInode != parentInode:
+			print(f"DIRECTORY INODE {parentInode} NAME '.' LINK TO INODE {dirInodeName} SHOULD BE {parentInode}")
+			exitFlag=1
+		if dirInodeName != "'.'" and dirInodeName != "'..'":
+			#in parent array, make this inode's parent = the parent in this struct 
+			parentArr[dirInode] = parentInode
+		inodeReferences[dirInode] = inodeReferences.get(dirInode, 0) +1
+
+	for inode in inodes:
+		currInode = int(inode[1])
+		#link count is 6th value
+		linkCount = int(inode[6])
+
+		if linkCount != inodeReferences.get(currInode, 0):
+			print(f"INODE {currInode} HAS {inodeReferences.get(currInode, 0)} LINKS BUT LINKCOUNT IS {linkCount}")
+			exitFlag=1
+
+	for direct in directs:
+		dirInode = int(direct[3])
+		dirInodeName = dirInodeName = direct[6]
+
+		if(dirInodeName) == ".." and dirInode!= parentArr[dirInode]:
+			print(f"DIRECTORY INODE {parentInode} NAME '..' LINK TO INODE {dirInode} SHOULD BE {parentArr[dirInode]}")
+			exitFlag=1
+
+
+
+
+
 			
 if __name__ == '__main__':
 
@@ -105,7 +159,7 @@ if __name__ == '__main__':
 	parseCSV(readCSV)
 	checkInodes()
 	checkBlocks()
-	#checkDirects()
+	checkDirects()
 
 if(exitFlag):
 	exit(2)
