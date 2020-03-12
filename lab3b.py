@@ -6,22 +6,22 @@
 
 import sys, string, locale, csv
 
-
 freeBlocks = [] 
 freeInodes = []
 inodes = []
 indirects = []
 directs = []
-
+usedInodes = []
 numBlocks = 0
 numInodes = 0
 exitFlag = 0
 blockSize = 0
 firstNonreservedBlock = 0
-
+firstInodeNum=0
+firstNonreservedInode = 11
 
 def parseCSV(myCSV):
-	global freeBlocks, freeInodes, Inodes, numBlocks, numInodes, blockSize, firstNonreservedBlock
+	global freeBlocks, freeInodes, Inodes, numBlocks, numInodes, blockSize, firstNonreservedBlock, firstInodeNum
 	for line in myCSV:
 		row = line.split(',') 
 		desc = row[0] 
@@ -54,18 +54,24 @@ def parseCSV(myCSV):
 	firstNonreservedBlock =  int(firstInodeNum + inodeTableSize)	
 
 def checkInodes():
-	global freeInodes, inodes, exitFlag
+	global freeInodes, inodes, exitFlag, usedInodes, firstNonreserved, numInodes
 	for inode in inodes:
 
-		num = inode[1] 
+		num = int(inode[1] )
 		fileType = inode[2]
-
-		if fileType != "0" and num in freeInodes:
+		usedInodes.append(int(num))
+		if num in freeInodes:
 			exitFlag = 1
 			print(f"ALLOCATED INODE {num} ON FREELIST")
-		elif fileType=="0" and num not in freeNodes:
+			freeInodes.remove(num)
+		elif fileType=="0" and num not in freeInodes:
 			exitFlag = 1
-			printf(f"UNALLOCATED INODE {num} NOT ON FREELIST")
+			print(f"UNALLOCATED INODE {num} NOT ON FREELIST")
+
+	for inode in range(firstNonreservedInode, numInodes):
+		if inode not in freeInodes and inode not in usedInodes:
+			print(f"UNALLOCATED INODE {inode} NOT ON FREELIST")
+			exitFlag=1
 		
 def checkBlocks():
 	global inodes, exitFlag, firstNonreservedBlock, freeBlocks
@@ -74,7 +80,7 @@ def checkBlocks():
 		inum = inode[1]
 		fileSize = int(inode[10])
 		fileType=inode[2]
-		#print(f"\n{inum}")
+
 		#filetype is 3rd val
 		#skip symbolic links with size less than 60; won't have the blocks allocated
 		if fileType == 's' and fileSize <= 60:
@@ -107,7 +113,7 @@ def checkBlocks():
 				exitFlag = 1
 			#valid
 			else:
-				#print(f"\n{currBlock}")	
+
 				if currBlock in myMap:
 					myMap[currBlock].append((inum, offset, levString))                                                
 				else:
@@ -158,14 +164,17 @@ def checkBlocks():
 
 
 
+
 def checkDirects():
-	global exitFlag,directs
+	global exitFlag,directs, usedInodes, freeInodes
 	inodeReferences = {}
-	parentArr = {}
+	#parent of 2 is 2
+	parentArr = {2:2}
 	for direct in directs:
 		dirInode = int(direct[3])
 		parentInode = int(direct[1])
-		dirInodeName = direct[6]
+		dirInodeName = str(direct[6].split('\n')[0])
+
 		if dirInode<0 or dirInode > numInodes:
 			print(f"DIRECTORY INODE {parentInode} NAME {dirInodeName} INVALID INODE {dirInode}")
 			exitFlag = 1
@@ -191,15 +200,11 @@ def checkDirects():
 
 	for direct in directs:
 		dirInode = int(direct[3])
-		dirInodeName = dirInodeName = direct[6]
-
-		if(dirInodeName) == ".." and dirInode!= parentArr[dirInode]:
+		dirInodeName = str(direct[6].split('\n')[0])
+		parentInode=int(direct[1])
+		if(dirInodeName) == "'..'" and dirInode!= parentArr[dirInode]:
 			print(f"DIRECTORY INODE {parentInode} NAME '..' LINK TO INODE {dirInode} SHOULD BE {parentArr[dirInode]}")
 			exitFlag=1
-
-
-
-
 
 			
 if __name__ == '__main__':
