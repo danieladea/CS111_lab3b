@@ -1,3 +1,9 @@
+###########################################
+#NAME: Daniel Adea, Miles Wu
+#EMAIL: dadea@ucla.edu, mileswu13@gmail.com
+#ID: 204999515, 705192892
+###########################################
+
 import sys, string, locale, csv
 
 
