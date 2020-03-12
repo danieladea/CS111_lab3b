@@ -57,7 +57,7 @@ def checkInodes():
 		if fileType != "0" and num in freeInodes:
 			exitFlag = 1
 			print(f"ALLOCATED INODE {num} ON FREELIST")
-		elif fileType==0 and num not in freeNodes:
+		elif fileType=="0" and num not in freeNodes:
 			exitFlag = 1
 			printf(f"UNALLOCATED INODE {num} NOT ON FREELIST")
 		
