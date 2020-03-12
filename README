@@ -1,3 +1,21 @@
-NAME: Daniel Adea
-EMAIL: dadea@ucla.edu
-ID: 204999515
+NAME: Daniel Adea, Miles Wu
+EMAIL: dadea@ucla.edu, mileswu13@gmail.com
+ID: 204999515, 705192892
+
+DESCRIPTION OF FILES
+lab3b.py
+This file contains the source code for the program outlined by the project
+specification. Running this with a corrupted csv representing a log of a
+filesystem will identify all errors present in the csv.
+
+Makefile
+This is the associated Makefile for the project, which alllows building of the
+program and creating the submission tarball. The Makefile contains the following
+targets:
+	default: Creates an executable called lab3b using the source file.
+	clean: Removes all files created by the Makefile.
+	dist: Builds the program and then creates a submission tarball with all
+	      project files inside.
+
+README
+This file contains a description of all project files.
